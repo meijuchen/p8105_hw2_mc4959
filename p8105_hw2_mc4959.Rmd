@@ -1,0 +1,13 @@
+---
+title: "p8105_hw2_mc4959"
+author: "Meiju Chen"
+date: "9/30/2020"
+output: github_document
+---
+
+```{r setup}
+library(tidyverse)
+library(readxl)
+```
+
+## Problem 1
