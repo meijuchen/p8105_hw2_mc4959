@@ -77,4 +77,49 @@ This dataset contains information from the Mr. Trashwheel trash collector in Bal
 
 
 
+## Problem 2
+
+Read and clean the NYC Transit Dataset.
+Retain important variables.
+Convert the entry variable to a logical variable.
+
+```{r}
+nyc_subway_df = 
+  read_csv(
+    "./data/nyc_transit_subway_data.csv") %>%
+  janitor::clean_names() %>%
+  select(line:entry, vending, ada) %>% 
+  mutate(entry = recode(entry, YES = "TRUE", NO = "FALSE")) %>% 
+  mutate(entry = as.logical(entry))
+```
+
+The dataset contains information of entrances and exits for each NYC subway station. I kept some important variables, such as: line, station, name, station latitude / longitude, routes served, entry, vending, entrance type, and ADA compliance.
+
+Then I cleaned the dataset, by reformatting the names, and converting the entry variable to a logical vector(True/False).
+The dataset has `r nrow(nyc_subway_df)` rows by `r ncol(nyc_subway_df)` columns. However, the dataset is still untidy. It contains lots of NA values and the information of routes are spread across the columns.
+
+* There are `r count(distinct(nyc_subway_df, station_name, line))` distinct stations.
+* `r filter(nyc_subway_df, ada == "TRUE") %>% distinct(station_name, line) %>% nrow` stations are ADA compliant.
+* The proportion of station entrances/exits without vending allow entrance is `r (filter(nyc_subway_df, vending == "NO" & entry == "TRUE") %>% nrow) / (filter(nyc_subway_df, vending == "NO") %>% nrow)`.
+
+
+Create a new dataset that tidies up the previous one, and reformat the data so that the route number and route name are distinct variables.
+
+```{r}
+tidy_subway_df =
+  nyc_subway_df %>%
+  mutate_at(vars(route1:route11), as.character) %>%
+  pivot_longer(
+    route1:route11,
+    names_to = "route_name",
+    names_prefix = "route",
+    values_to = "route_number"
+  ) %>% 
+  drop_na(route_number)
+```
+
+There are `r tidy_subway_df %>% filter(route_number == "A") %>% distinct(line, station_name) %>% count()` stations that serve the A train. Of these stations, only `r tidy_subway_df %>% filter(route_number == "A" & ada == "TRUE") %>% distinct(line, station_name) %>% count()` are ADA compliant.
+
+
+
 
