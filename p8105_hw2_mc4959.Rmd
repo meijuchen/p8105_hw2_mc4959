@@ -79,7 +79,7 @@ This dataset contains information from the Mr. Trashwheel trash collector in Bal
 
 ## Problem 2
 
-Read and clean the NYC Transit Dataset.
+(1) Read and clean the NYC Transit Dataset.
 Retain important variables.
 Convert the entry variable to a logical variable.
 
@@ -95,7 +95,7 @@ nyc_subway_df =
 
 The dataset contains information of entrances and exits for each NYC subway station. I kept some important variables, such as: line, station, name, station latitude / longitude, routes served, entry, vending, entrance type, and ADA compliance.
 
-Then I cleaned the dataset, by reformatting the names, and converting the entry variable to a logical vector(True/False).
+Then I cleaned the dataset, and converting the entry variable to a logical vector(True/False).
 The dataset has `r nrow(nyc_subway_df)` rows by `r ncol(nyc_subway_df)` columns. However, the dataset is still untidy. It contains lots of NA values and the information of routes are spread across the columns.
 
 * There are `r count(distinct(nyc_subway_df, station_name, line))` distinct stations.
@@ -103,7 +103,7 @@ The dataset has `r nrow(nyc_subway_df)` rows by `r ncol(nyc_subway_df)` columns.
 * The proportion of station entrances/exits without vending allow entrance is `r (filter(nyc_subway_df, vending == "NO" & entry == "TRUE") %>% nrow) / (filter(nyc_subway_df, vending == "NO") %>% nrow)`.
 
 
-Create a new dataset that tidies up the previous one, and reformat the data so that the route number and route name are distinct variables.
+(2) Create a new dataset that tidies up the previous one, and reformat the data so that the route number and route name are distinct variables.
 
 ```{r}
 tidy_subway_df =
@@ -121,5 +121,99 @@ tidy_subway_df =
 There are `r tidy_subway_df %>% filter(route_number == "A") %>% distinct(line, station_name) %>% count()` stations that serve the A train. Of these stations, only `r tidy_subway_df %>% filter(route_number == "A" & ada == "TRUE") %>% distinct(line, station_name) %>% count()` are ADA compliant.
 
 
+
+## Problem 3
+
+(1) Read and clean pols-month dataset. 
+
+```{r}
+pols_df = 
+  read_csv(
+    "./data/fivethirtyeight_datasets/pols-month.csv") %>% 
+  janitor::clean_names() %>%
+  separate(
+    mon, into = c("year", "month", "day")) %>%
+   mutate(
+     year = as.integer(year),
+     month = as.integer(month),
+     day = as.integer(day))
+
+pols_month_df = 
+  tibble(
+    month = 1:12,
+    month_name = month.name)
+
+pols_df = 
+  left_join(pols_df, pols_month_df, by = "month") %>% 
+  mutate(
+    month = month_name) %>% 
+  select(year:rep_dem)
+
+pols_df = 
+  mutate(
+    pols_df, president = 
+      case_when(
+        prez_dem == 1 ~ "dem",
+        prez_gop == 1 ~ "gop")) %>% 
+  select(-day, -prez_dem, -prez_gop)
+
+```
+
+(2) Read and clean snp dataset. 
+
+```{r}
+snp_df = 
+  read_csv(
+    "./data/fivethirtyeight_datasets/snp.csv") %>% 
+  janitor::clean_names() %>%
+  separate(
+    date, into = c("month", "day", "year")) %>%
+   mutate(
+     month = as.integer(month),
+     day = as.integer(day),
+     year = as.integer(year)) %>% 
+  arrange(year, month) %>% 
+  relocate(year, month) %>% 
+  left_join(pols_month_df, by = "month") %>% 
+  mutate(month = month_name) %>% 
+  select(year:close, -day)
+```
+
+(3) Tidy up the unemployment dataset.
+
+```{r}
+unemployment_df = 
+  read_csv(
+    "./data/fivethirtyeight_datasets/unemployment.csv") %>% 
+  janitor::clean_names() %>%
+  select(
+    year, January = jan, February = feb, March = mar, 
+    April = apr, May = may, June = jun, July = jul, 
+    August = aug, September = sep, October = oct, 
+    November = nov, December = dec) %>% 
+  pivot_longer(
+    January:December,
+    names_to = "month",
+    values_to = "unemploy_percent") %>% 
+  mutate(month = as.character(month),
+         year = as.integer(year))
+```
+
+(4) Join all datasets.
+
+```{r}
+final_df = 
+  left_join(pols_df, snp_df, by = c("year", "month")) %>% 
+  left_join(unemployment_df, by = c("year", "month"))
+```
+
+3 datasets are combined in the final dataset(final_df): pols_df, snp_df, and unemployment_df. 
+
+* The cleaned pols_df has `r nrow(pols_df)` rows and `r ncol(pols_df)` columns. 
+* The cleaned snp_df has `r nrow(snp_df)` rows and `r ncol(snp_df)` columns. 
+* The cleaned unemployment_df contains `r nrow(unemployment_df)` rows and `r ncol(unemployment_df)` columns.
+
+The final_df is created by joining all 3 datasets by year and month. 
+* The final_df contains`r nrow(final_df)` rows and `r ncol(final_df)` columns.
 
 
